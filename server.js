@@ -7,11 +7,12 @@ const redisClient = Redis.createClient();
 const app = express()
 app.use(cors())
 
-app.get("/photos", async (req,res) =>{
-    const albumId =  req.query.albumId
+app.get("/photos", async (req, res) => {
+    const albumId = req.query.albumId
     const key = `photos?albumId=${albumId}`
+    console.log("key", key)
     const response = await getCache(key, async () => {
-        const response = await axios.get('https://jsonplaceholder.typicode.com/photos',{
+        const response = await axios.get('https://jsonplaceholder.typicode.com/photos', {
             params: {
                 albumId
             }
@@ -21,48 +22,48 @@ app.get("/photos", async (req,res) =>{
     )
 
     res.json(response)
-    
+
 })
 
-app.get("/photos/:id", async (req,res) =>{
-    const id =  req.params.id
+app.get("/photos/:id", async (req, res) => {
+    const id = req.params.id
     const key = `photos:${id}`
     const response = await getCache(key, async () => {
         const response = await axios.get(`https://jsonplaceholder.typicode.com/photos/${id}`)
         return response.data
     }
-)
+    )
 
-res.json(response)
+    res.json(response)
 
 
 }
 )
 
-function getCache(key,cb){
-    return new Promise(async (resolve,reject) => {
-        console.log("key",key)
-        try{
+function getCache(key, cb) {
+    return new Promise(async (resolve, reject) => {
+        console.log("key", key)
+        try {
             const data = await redisClient.get(key)
-            if(data!=null){
-                console.log("data",data)
+            if (data != null) {
+                console.log("data found")
                 resolve(JSON.parse(data))
             }
-            else{
+            else {
                 console.log("no data")
                 const newData = await cb()
-                redisClient.set(key,JSON.stringify(newData))
+                redisClient.set(key, JSON.stringify(newData))
                 resolve(newData)
             }
-        } catch (error){
+        } catch (error) {
             console.error(error)
             reject(error)
         }
 
-})
+    })
 }
 
-app.listen(3000, async () => {    
+app.listen(3000, async () => {
     await redisClient.connect()
     console.log(`server on http://localhost:3000`)
 }
